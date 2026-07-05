@@ -76,11 +76,18 @@ def authenticate(access_code: str):
 # ----------------------------------------------------------------------
 
 def get_queue(annotator_id: int):
-    """All assignments for this annotator, joined with clip info. Under the
-    two-round assignment design (assign_round1.py / assign_round2.py), a
-    given annotator is never assigned both a clip's L0 and its degraded
-    levels, so the stage ordering below is mostly moot per-annotator —
-    kept as a harmless tiebreak in case that ever changes."""
+    """All assignments for this annotator, joined with clip info.
+
+    An annotator's queue mixes L0 tasks (for clips they're the L0 author of)
+    and degraded tasks (for different clips, assigned in round 2) — never
+    both for the SAME clip, but both task types do coexist in one queue.
+    Ordering by clip_name first (as an earlier version did) interleaves the
+    two task types alphabetically by clip, which in practice meant
+    annotators mostly hit degraded tasks before their L0 tasks. Sort by
+    stage first instead, so all of an annotator's L0 tasks surface before
+    their degraded ones — L0 completions are also what unblocks OTHER
+    annotators' round-2 assignments for those clips, so finishing L0 early
+    keeps the whole pipeline moving."""
     with _cursor() as cur:
         cur.execute(
             """
@@ -90,8 +97,8 @@ def get_queue(annotator_id: int):
             FROM assignments a
             JOIN clips c ON c.id = a.clip_id
             WHERE a.annotator_id = %s
-            ORDER BY c.clip_name,
-                     (c.stage != '1_defiguration'),  -- base stage first
+            ORDER BY (c.stage != '1_defiguration'),  -- L0 tasks first
+                     c.clip_name,
                      c.level
             """,
             (annotator_id,),
