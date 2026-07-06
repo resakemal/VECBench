@@ -29,8 +29,8 @@ STAGE1_HINT = (
     "- **Remove** false claims, and anything interpretive you can't point to "
     "(\"a sense of nostalgia\", \"appears well-loved\").\n"
     "- **Add** missing true claims (objects/actions the caption failed to mention).\n\n"
-    "**FIRST READ THE INSTRUCTIONS BELOW, THEN WATCH THE WHOLE VIDEO ONCE**"
-    "**FROM START TO FINISH BEFORE YOU START WRITING**\n\n"
+    "**FIRST READ THE INSTRUCTIONS BELOW, THEN WATCH THE WHOLE VIDEO ONCE"
+    "FROM START TO FINISH BEFORE YOU START WRITING**\n\n"
     "Three rules for what and how to describe:\n\n"
     "1. **Name at the everyday level.** Use the ordinary word for a thing "
     "(\"dog\", \"car\", \"bottle\"). Go *more* specific (\"golden retriever\", "
@@ -44,7 +44,11 @@ STAGE1_HINT = (
     "what's happening. Include background detail only if it's prominent or "
     "clearly intentional — don't exhaustively inventory everything.\n\n"
     "Don't aim for any particular length — say exactly as much as passes the "
-    "three rules, no more and no less."
+    "three rules, no more and no less.\n\n"
+    "Hint: You can copy-paste text from the GT caption and use it as a base;"
+    "you need to select the text (still possible even with disabled cursor), "
+    "and perform right click + click 'Copy' instead of Ctrl+C due to the latter"
+    "being the Clear Cache command in Streamlit"
 )
 
 STAGE2_HINT = (
@@ -166,10 +170,13 @@ def annotation_screen():
     db.mark_in_progress(item["assignment_id"])
 
     is_base = db.is_base_level(item["level"])
-    overlap_tag = " · overlap/IAA clip" if item["is_overlap_subset"] else ""
+    # overlap_tag = " · overlap/IAA clip" if item["is_overlap_subset"] else ""
+    # st.caption(
+    #     f"Clip **{item['clip_name']}** — level **{item['level']}**"
+    #     f"{overlap_tag} — {st.session_state['idx']+1} of {len(pending)} remaining"
+    # )
     st.caption(
-        f"Clip **{item['clip_name']}** — level **{item['level']}**"
-        f"{overlap_tag} — {st.session_state['idx']+1} of {len(pending)} remaining"
+        f"{st.session_state['idx']+1} of {len(pending)} remaining"
     )
 
     col_video, col_hint = st.columns([1, 1.2])
@@ -187,7 +194,8 @@ def annotation_screen():
             reference_label = "GT caption (reference)"
         else:
             st.markdown(STAGE2_HINT)
-            base_caption = db.get_base_caption(item["clip_name"]) or ""
+            # base_caption = db.get_base_caption(item["clip_name"]) or ""
+            base_caption = ""
             reference_label = "L0 base caption (read-only)"
 
     # For degraded levels with no base yet, bail out before the editor.
@@ -205,14 +213,16 @@ def annotation_screen():
     if text_key not in st.session_state:
         st.session_state[text_key] = default_text
 
-    if not is_base:
-        st.write("Insert hedge phrase:")
-        hcols = st.columns(len(HEDGE_PHRASES))
-        for hc, phrase in zip(hcols, HEDGE_PHRASES):
-            if hc.button(phrase, key=f"hedge_{item['assignment_id']}_{phrase}"):
-                st.session_state[text_key] = apply_hedge_to_text(
-                    st.session_state[text_key], phrase
-                )
+    # Buttons to apply hedge to text; disable due to limitation of only appending
+    # and not on selection/caret
+    # if not is_base:
+    #     st.write("Insert hedge phrase:")
+    #     hcols = st.columns(len(HEDGE_PHRASES))
+    #     for hc, phrase in zip(hcols, HEDGE_PHRASES):
+    #         if hc.button(phrase, key=f"hedge_{item['assignment_id']}_{phrase}"):
+    #             st.session_state[text_key] = apply_hedge_to_text(
+    #                 st.session_state[text_key], phrase
+    #             )
 
     # Reference (left) and editable caption (right) side-by-side at full
     # page width, both tall enough to read a full ARGUS-length caption
