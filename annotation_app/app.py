@@ -24,11 +24,15 @@ HEDGE_PHRASES = db.HEDGE_PHRASES
 
 STAGE1_HINT = (
     "**Stage 1 — De-figuration (authoring the L0 base)**\n\n"
-    "Strip figurative / interpretive language from the GT caption. Keep only "
-    "grounded, verifiable visual claims. This becomes L0\n"
-    "- **Remove** false claims, and anything interpretive you can't point to "
+    "Write a detailed caption describing the video with the ground truth (GT) caption"
+    "as reference, keeping only grounded and verifiable visual claims.\n"
+    "- **Leave out** anything false or unverifiable — claims the GT caption "
+    "makes that aren't actually visible, or figurative/interpretive language"
     "(\"a sense of nostalgia\", \"appears well-loved\").\n"
-    "- **Add** missing true claims (objects/actions the caption failed to mention).\n\n"
+    "- **Include** anything true and visible that the GT caption missed.\n\n"
+    "Granularity floor: describe each thing as specifically as you can "
+    "**confidently verify** — object type, colour, count, readable text, coarse "
+    "position — but no finer than that. This becomes L0.\n\n"
     "**FIRST READ THE INSTRUCTIONS BELOW, THEN WATCH THE WHOLE VIDEO ONCE"
     "FROM START TO FINISH BEFORE YOU START WRITING**\n\n"
     "Three rules for what and how to describe:\n\n"
@@ -48,7 +52,7 @@ STAGE1_HINT = (
     "Hint: You can copy-paste text from the GT caption and use it as a base;"
     "you need to select the text (still possible even with disabled cursor), "
     "and perform right click + click 'Copy' instead of Ctrl+C due to the latter"
-    "being the Clear Cache command in Streamlit"
+    "being the Clear Cache command in Streamlit."
 )
 
 STAGE2_HINT = (
@@ -190,12 +194,12 @@ def annotation_screen():
     with col_hint:
         if is_base:
             st.markdown(STAGE1_HINT)
-            base_caption = item["gt_caption"] or ""
+            # base_caption = item["gt_caption"] or ""
+            base_caption = ""
             reference_label = "GT caption (reference)"
         else:
             st.markdown(STAGE2_HINT)
-            # base_caption = db.get_base_caption(item["clip_name"]) or ""
-            base_caption = ""
+            base_caption = db.get_base_caption(item["clip_name"]) or ""
             reference_label = "L0 base caption (read-only)"
 
     # For degraded levels with no base yet, bail out before the editor.
@@ -207,7 +211,14 @@ def annotation_screen():
         return
 
     existing = db.get_existing_annotation(item["assignment_id"])
-    default_text = existing if existing else base_caption
+    if existing:
+        default_text = existing
+    elif is_base:
+        # Keep empty on stage 1
+        default_text = ""
+    else:
+        # Use L0 caption as base on stage 2
+        default_text = base_caption
 
     text_key = f"caption_{item['assignment_id']}"
     if text_key not in st.session_state:
