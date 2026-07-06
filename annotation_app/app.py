@@ -194,8 +194,7 @@ def annotation_screen():
     with col_hint:
         if is_base:
             st.markdown(STAGE1_HINT)
-            # base_caption = item["gt_caption"] or ""
-            base_caption = ""
+            base_caption = item["gt_caption"] or ""
             reference_label = "GT caption (reference)"
         else:
             st.markdown(STAGE2_HINT)
