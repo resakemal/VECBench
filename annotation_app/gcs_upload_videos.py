@@ -64,9 +64,17 @@ import argparse
 import csv
 import json
 import os
+import time
 
 from google.cloud import storage
 from tqdm import tqdm
+
+UPLOAD_CHUNK_SIZE = 8 * 1024 * 1024  # bytes; smaller chunks let a resumable
+                                      # upload survive/retry a mid-transfer
+                                      # timeout instead of resending the
+                                      # whole file
+UPLOAD_TIMEOUT = 300  # seconds, per chunk request
+UPLOAD_RETRIES = 5
 
 VIDEO_EXTENSIONS = (".mp4", ".mov", ".mkv", ".webm")
 LEVELS = ("L0", "L1", "L2", "L3")
@@ -216,9 +224,19 @@ def main():
                                           "subfolders of videos (mode C)")
     ap.add_argument("--captions", help="CSV with clip_name,human_caption "
                                         "for L0 GT captions (mode C)")
+    ap.add_argument("--levels", help="Comma-separated list of levels to upload "
+                                      "(e.g. 'L0' or 'L0,L1'). Default: all levels.")
     ap.add_argument("--bucket", required=True)
     ap.add_argument("--manifest-out", required=True)
     args = ap.parse_args()
+
+    levels_filter = None
+    if args.levels:
+        levels_filter = {lvl.strip().upper() for lvl in args.levels.split(",") if lvl.strip()}
+        unknown = levels_filter - set(LEVELS)
+        if unknown:
+            raise SystemExit(f"Unknown level(s) in --levels: {', '.join(sorted(unknown))} "
+                              f"(valid: {', '.join(LEVELS)})")
 
     if args.video_root and args.captions:
         rows = build_manifest_from_folder(args.video_root, args.captions)
@@ -238,6 +256,9 @@ def main():
             "or (--video-dir and --manifest-in) for mode B."
         )
 
+    if levels_filter is not None:
+        rows = [r for r in rows if r["level"] in levels_filter]
+
     client = storage.Client()
     bucket = client.bucket(args.bucket)
 
@@ -251,7 +272,28 @@ def main():
 
         blob_name = f"{r['clip_name']}/{r['level']}.mp4"
         blob = bucket.blob(blob_name)
-        blob.upload_from_filename(local_path, content_type="video/mp4")
+        blob.chunk_size = UPLOAD_CHUNK_SIZE
+
+        success = False
+        for attempt in range(1, UPLOAD_RETRIES + 1):
+            try:
+                blob.upload_from_filename(local_path, content_type="video/mp4",
+                                           timeout=UPLOAD_TIMEOUT)
+                success = True
+                break
+            except Exception as e:
+                if attempt == UPLOAD_RETRIES:
+                    tqdm.write(f"  ! Upload failed after {UPLOAD_RETRIES} attempts, "
+                               f"skipping: {local_path} ({e})")
+                    break
+                wait = 2 ** attempt
+                tqdm.write(f"  ! Upload error ({e}), retrying in {wait}s "
+                           f"({attempt}/{UPLOAD_RETRIES}): {local_path}")
+                time.sleep(wait)
+
+        if not success:
+            skipped += 1
+            continue
 
         r["video_url"] = public_url(args.bucket, blob_name)
         uploaded += 1
