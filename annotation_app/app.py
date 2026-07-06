@@ -25,12 +25,26 @@ HEDGE_PHRASES = db.HEDGE_PHRASES
 STAGE1_HINT = (
     "**Stage 1 — De-figuration (authoring the L0 base)**\n\n"
     "Strip figurative / interpretive language from the GT caption. Keep only "
-    "grounded, verifiable visual claims.\n"
-    "- **Remove** false claims (things the caption asserts that aren't in the video).\n"
+    "grounded, verifiable visual claims. This becomes L0\n"
+    "- **Remove** false claims, and anything interpretive you can't point to "
+    "(\"a sense of nostalgia\", \"appears well-loved\").\n"
     "- **Add** missing true claims (objects/actions the caption failed to mention).\n\n"
-    "Granularity floor: describe each thing as specifically as you can "
-    "**confidently verify** — object type, colour, count, readable text, coarse "
-    "position — but no finer than that. This becomes L0."
+    "**FIRST READ THE INSTRUCTIONS BELOW, THEN WATCH THE WHOLE VIDEO ONCE**"
+    "**FROM START TO FINISH BEFORE YOU START WRITING**\n\n"
+    "Three rules for what and how to describe:\n\n"
+    "1. **Name at the everyday level.** Use the ordinary word for a thing "
+    "(\"dog\", \"car\", \"bottle\"). Go *more* specific (\"golden retriever\", "
+    "\"red hatchback\") only when you can point to the visual evidence for it; "
+    "stay *more* general (\"animal\", \"vehicle\") when even the everyday word "
+    "is uncertain.\n"
+    "2. **Point-to-it test for each claim.** Include a claim only if you could "
+    "pause the video and point to the pixels that justify it. If you can't, "
+    "leave it out.\n"
+    "3. **Foreground first.** Describe the entities and actions central to "
+    "what's happening. Include background detail only if it's prominent or "
+    "clearly intentional — don't exhaustively inventory everything.\n\n"
+    "Don't aim for any particular length — say exactly as much as passes the "
+    "three rules, no more and no less."
 )
 
 STAGE2_HINT = (
@@ -57,7 +71,7 @@ NO_BASE_HINT = (
 PROJECT_DESCRIPTION = """
 ### About this project
 
-**VidEpiCal** studies whether AI video-description models adjust what they
+**VidEpiCal** studies whether video captioning of VLMs adjust what they
 claim to see as video quality gets worse — the way a careful human would
 say "hard to tell, but possibly a red car" instead of confidently naming
 the make and model of something too blurry to make out. Your captions
@@ -65,13 +79,14 @@ become the human reference this project compares AI-generated descriptions
 against, so accuracy and honesty about what's actually visible matter more
 than writing style or length.
 
-**What you'll be doing** falls into two kinds of tasks:
+**Tasks**:
 
 - **De-figuration (L0)** — given a clean, full-quality video and an
   existing description, you'll edit it down to only claims you can
   personally verify from the video, removing anything false or overly
-  figurative and adding anything true it missed.
-- **Degradation (L1-L3)** — given a *degraded* video and someone else's
+  figurative (e.g. The classroom was *as quiet as a mouse.*)
+  and adding anything true it missed.
+- **Degradation (L1-L3)** — given a *degraded* video and a
   L0 description of it, you'll edit that description down to only what's
   still verifiable at the lower quality — reducing specificity, hedging,
   or removing claims that no longer hold, never adding new ones.
@@ -161,9 +176,9 @@ def annotation_screen():
 
     with col_video:
         st.video(item["video_url"])
-        target = db.LEVEL_TARGET_VMAF.get(item["level"])
-        if target is not None:
-            st.caption(f"Nominal quality target: VMAF ~{target}")
+        # target = db.LEVEL_TARGET_VMAF.get(item["level"])
+        # if target is not None:
+        #     st.caption(f"Nominal quality target: VMAF ~{target}")
 
     with col_hint:
         if is_base:
