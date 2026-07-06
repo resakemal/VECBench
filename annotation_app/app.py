@@ -23,7 +23,7 @@ st.set_page_config(page_title="VidEpiCal Annotator", layout="wide")
 HEDGE_PHRASES = db.HEDGE_PHRASES
 
 STAGE1_HINT = (
-    "**Stage 1 — De-figuration (authoring the P0 base)**\n\n"
+    "**Stage 1 — De-figuration (authoring the L0 base)**\n\n"
     "Strip figurative / interpretive language from the GT caption. Keep only "
     "grounded, verifiable visual claims.\n"
     "- **Remove** false claims (things the caption asserts that aren't in the video).\n"
@@ -54,6 +54,35 @@ NO_BASE_HINT = (
     "annotator. Skip this clip for now and come back once L0 is done."
 )
 
+PROJECT_DESCRIPTION = """
+### About this project
+
+**VidEpiCal** studies whether AI video-description models adjust what they
+claim to see as video quality gets worse — the way a careful human would
+say "hard to tell, but possibly a red car" instead of confidently naming
+the make and model of something too blurry to make out. Your captions
+become the human reference this project compares AI-generated descriptions
+against, so accuracy and honesty about what's actually visible matter more
+than writing style or length.
+
+**What you'll be doing** falls into two kinds of tasks:
+
+- **De-figuration (L0)** — given a clean, full-quality video and an
+  existing description, you'll edit it down to only claims you can
+  personally verify from the video, removing anything false or overly
+  figurative and adding anything true it missed.
+- **Degradation (L1-L3)** — given a *degraded* video and someone else's
+  L0 description of it, you'll edit that description down to only what's
+  still verifiable at the lower quality — reducing specificity, hedging,
+  or removing claims that no longer hold, never adding new ones.
+
+You'll sometimes be asked to caption a degraded video whose clean version
+you've never seen — that's intentional, not an error. It keeps your
+judgment about what's visible limited to what's actually in the degraded
+footage, rather than filled in from memory of a clearer version you saw
+earlier.
+"""
+
 
 def render_diff(base: str, current: str):
     if not base or not current:
@@ -76,6 +105,7 @@ def render_diff(base: str, current: str):
 
 def login_screen():
     st.title("📹 VidEpiCal Annotator")
+    st.markdown(PROJECT_DESCRIPTION)
     code = st.text_input("Access code", type="password")
     if st.button("Log in") and code:
         annotator = db.authenticate(code)
@@ -127,7 +157,7 @@ def annotation_screen():
         f"{overlap_tag} — {st.session_state['idx']+1} of {len(pending)} remaining"
     )
 
-    col_video, col_caption = st.columns([1, 1.2])
+    col_video, col_hint = st.columns([1, 1.2])
 
     with col_video:
         st.video(item["video_url"])
@@ -135,66 +165,78 @@ def annotation_screen():
         if target is not None:
             st.caption(f"Nominal quality target: VMAF ~{target}")
 
-    with col_caption:
+    with col_hint:
         if is_base:
             st.markdown(STAGE1_HINT)
             base_caption = item["gt_caption"] or ""
-            st.text_area("GT caption (reference)", base_caption, height=100, disabled=True)
+            reference_label = "GT caption (reference)"
         else:
             st.markdown(STAGE2_HINT)
             base_caption = db.get_base_caption(item["clip_name"]) or ""
-            if not base_caption:
-                st.warning(NO_BASE_HINT)
-                if st.button("Skip for now →"):
-                    st.session_state["idx"] += 1
-                    st.rerun()
-                return
-            st.text_area("L0 base caption (read-only)", base_caption, height=100, disabled=True)
+            reference_label = "L0 base caption (read-only)"
 
-        existing = db.get_existing_annotation(item["assignment_id"])
-        default_text = existing if existing else base_caption
+    # For degraded levels with no base yet, bail out before the editor.
+    if not is_base and not base_caption:
+        st.warning(NO_BASE_HINT)
+        if st.button("Skip for now →"):
+            st.session_state["idx"] += 1
+            st.rerun()
+        return
 
-        text_key = f"caption_{item['assignment_id']}"
-        if text_key not in st.session_state:
-            st.session_state[text_key] = default_text
+    existing = db.get_existing_annotation(item["assignment_id"])
+    default_text = existing if existing else base_caption
 
-        if not is_base:
-            st.write("Insert hedge phrase:")
-            hcols = st.columns(len(HEDGE_PHRASES))
-            for hc, phrase in zip(hcols, HEDGE_PHRASES):
-                if hc.button(phrase, key=f"hedge_{item['assignment_id']}_{phrase}"):
-                    st.session_state[text_key] = apply_hedge_to_text(
-                        st.session_state[text_key], phrase
-                    )
+    text_key = f"caption_{item['assignment_id']}"
+    if text_key not in st.session_state:
+        st.session_state[text_key] = default_text
 
-        caption = st.text_area("Your caption", key=text_key, height=180)
+    if not is_base:
+        st.write("Insert hedge phrase:")
+        hcols = st.columns(len(HEDGE_PHRASES))
+        for hc, phrase in zip(hcols, HEDGE_PHRASES):
+            if hc.button(phrase, key=f"hedge_{item['assignment_id']}_{phrase}"):
+                st.session_state[text_key] = apply_hedge_to_text(
+                    st.session_state[text_key], phrase
+                )
 
-        if not is_base:
-            render_diff(base_caption, caption)
+    # Reference (left) and editable caption (right) side-by-side at full
+    # page width, both tall enough to read a full ARGUS-length caption
+    # without scrolling.
+    CAPTION_HEIGHT = 360
+    col_ref, col_yours = st.columns(2)
+    with col_ref:
+        st.text_area(reference_label, base_caption,
+                      height=CAPTION_HEIGHT, disabled=True)
+    with col_yours:
+        caption = st.text_area("Your caption", key=text_key,
+                                height=CAPTION_HEIGHT)
 
-        b1, b2, b3 = st.columns(3)
-        with b1:
-            if st.button("⏮ Previous", disabled=st.session_state["idx"] == 0):
-                st.session_state["idx"] -= 1
-                st.rerun()
-        with b2:
-            if st.button("Skip →"):
+    if not is_base:
+        render_diff(base_caption, caption)
+
+    b1, b2, b3 = st.columns(3)
+    with b1:
+        if st.button("⏮ Previous", disabled=st.session_state["idx"] == 0):
+            st.session_state["idx"] -= 1
+            st.rerun()
+    with b2:
+        if st.button("Skip →"):
+            st.session_state["idx"] += 1
+            st.rerun()
+    with b3:
+        if st.button("💾 Save & Next", type="primary"):
+            if not caption.strip():
+                st.warning(
+                    "Empty caption. If the clip is too degraded to describe, "
+                    "write: \"Unable to determine content due to severe degradation.\""
+                )
+            else:
+                db.save_annotation(
+                    item["assignment_id"], annotator["id"], item["clip_id"],
+                    caption.strip(),
+                )
                 st.session_state["idx"] += 1
                 st.rerun()
-        with b3:
-            if st.button("💾 Save & Next", type="primary"):
-                if not caption.strip():
-                    st.warning(
-                        "Empty caption. If the clip is too degraded to describe, "
-                        "write: \"Unable to determine content due to severe degradation.\""
-                    )
-                else:
-                    db.save_annotation(
-                        item["assignment_id"], annotator["id"], item["clip_id"],
-                        caption.strip(),
-                    )
-                    st.session_state["idx"] += 1
-                    st.rerun()
 
 
 def main():
