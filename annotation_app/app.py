@@ -49,9 +49,9 @@ STAGE1_HINT = (
     "clearly intentional — don't exhaustively inventory everything.\n\n"
     "Don't aim for any particular length — say exactly as much as passes the "
     "three rules, no more and no less.\n\n"
-    "Hint: You can copy-paste text from the GT caption and use it as a base;"
+    "Hint: You can copy-paste text from the GT caption and use it as a base; "
     "you need to select the text (still possible even with disabled cursor), "
-    "and perform right click + click 'Copy' instead of Ctrl+C due to the latter"
+    "and perform right click + click 'Copy' instead of Ctrl+C due to the latter "
     "being the Clear Cache command in Streamlit."
 )
 
@@ -183,23 +183,39 @@ def annotation_screen():
         f"{st.session_state['idx']+1} of {len(pending)} remaining"
     )
 
-    col_video, col_hint = st.columns([1, 1.2])
+    # col_video, col_hint = st.columns([1, 1.2])
 
-    with col_video:
+    # with col_video:
+    #     st.video(item["video_url"])
+    #     # target = db.LEVEL_TARGET_VMAF.get(item["level"])
+    #     # if target is not None:
+    #     #     st.caption(f"Nominal quality target: VMAF ~{target}")
+
+    # with col_hint:
+    #     if is_base:
+    #         st.markdown(STAGE1_HINT)
+    #         base_caption = item["gt_caption"] or ""
+    #         reference_label = "GT caption (reference)"
+    #     else:
+    #         st.markdown(STAGE2_HINT)
+    #         base_caption = db.get_base_caption(item["clip_name"]) or ""
+    #         reference_label = "L0 base caption (read-only)"
+
+    col_vid_l, col_vid_c, col_vid_r = st.columns([1, 2, 1])
+    with col_vid_c:
         st.video(item["video_url"])
-        # target = db.LEVEL_TARGET_VMAF.get(item["level"])
-        # if target is not None:
-        #     st.caption(f"Nominal quality target: VMAF ~{target}")
+        target = db.LEVEL_TARGET_VMAF.get(item["level"])
+        if target is not None:
+            st.caption(f"Nominal quality target: VMAF ~{target}")
 
-    with col_hint:
-        if is_base:
-            st.markdown(STAGE1_HINT)
-            base_caption = item["gt_caption"] or ""
-            reference_label = "GT caption (reference)"
-        else:
-            st.markdown(STAGE2_HINT)
-            base_caption = db.get_base_caption(item["clip_name"]) or ""
-            reference_label = "L0 base caption (read-only)"
+    if is_base:
+        st.markdown(STAGE1_HINT)
+        base_caption = item["gt_caption"] or ""
+        reference_label = "GT caption (reference)"
+    else:
+        st.markdown(STAGE2_HINT)
+        base_caption = db.get_base_caption(item["clip_name"]) or ""
+        reference_label = "L0 base caption (read-only)"
 
     # For degraded levels with no base yet, bail out before the editor.
     if not is_base and not base_caption:
