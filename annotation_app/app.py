@@ -201,12 +201,13 @@ def annotation_screen():
     #         base_caption = db.get_base_caption(item["clip_name"]) or ""
     #         reference_label = "L0 base caption (read-only)"
 
-    col_vid_l, col_vid_c, col_vid_r = st.columns([1, 5, 1])
-    with col_vid_c:
-        st.video(item["video_url"])
+    # col_vid_l, col_vid_c, col_vid_r = st.columns([1, 5, 1])
+    # with col_vid_c:
+    #     st.video(item["video_url"])
         # target = db.LEVEL_TARGET_VMAF.get(item["level"])
         # if target is not None:
         #     st.caption(f"Nominal quality target: VMAF ~{target}")
+    st.video(item["video_url"])
 
     if is_base:
         st.markdown(STAGE1_HINT)
