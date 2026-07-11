@@ -198,11 +198,33 @@ kept only for solo/small-team use where that's acceptable. Use
 4. (Optional) Deploy `admin_dashboard.py` as a second Streamlit app for
    yourself, with an `ADMIN_PASSWORD` secret.
 
-## 5. Onboard annotators
-Send each annotator the app URL and their access code. That's the only
-"login" — no accounts to create.
+## 5. Set up the worked examples (optional but recommended)
+Annotators see a worked example each time they enter the de-figuration or
+degradation section. The caption text is already baked into `examples.py`;
+you just need to host the example videos and paste their URLs in.
 
-## 6. Pull annotations back into your existing pipeline
+1. Upload the example clips to your bucket (L0 should be transcoded to
+   browser-safe H.264 like your real L0 clips — an already-transcoded
+   `L0.mp4` is provided):
+   ```bash
+   gcloud storage cp L0.mp4              gs://YOUR_BUCKET/_examples/L0.mp4
+   gcloud storage cp Bbp-cdBWg0k_L1.mp4  gs://YOUR_BUCKET/_examples/L1.mp4
+   gcloud storage cp Bbp-cdBWg0k_L2.mp4  gs://YOUR_BUCKET/_examples/L2.mp4
+   gcloud storage cp Bbp-cdBWg0k_L3.mp4  gs://YOUR_BUCKET/_examples/L3.mp4
+   ```
+2. Fill in `EXAMPLE_VIDEO_URLS` at the top of `examples.py` with the
+   resulting public URLs (e.g.
+   `https://storage.googleapis.com/YOUR_BUCKET/_examples/L0.mp4`).
+
+Any URL left as `""` just omits that video and shows the caption text only,
+so the app works before you've uploaded them.
+
+## 6. Onboard annotators
+Send each annotator the app URL and their access code. That's the only
+"login" — no accounts to create. After logging in they pick a section
+(de-figuration first; degradation unlocks once all their L0 tasks are done).
+
+## 7. Pull annotations back into your existing pipeline
 ```bash
 export DATABASE_URL="postgresql://..."
 python export_annotations.py --out annotations.csv

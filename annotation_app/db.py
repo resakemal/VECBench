@@ -173,6 +173,58 @@ def mark_in_progress(assignment_id):
         )
 
 
+def count_incomplete_defiguration(annotator_id: int) -> int:
+    """Number of this annotator's L0 (de-figuration) assignments not yet
+    done. The degradation section stays locked until this is 0, so an
+    annotator finishes all their own L0 work before moving on — and since
+    other annotators' round-2 degradation clips depend on these L0 captions
+    existing, it also keeps the pipeline unblocked."""
+    with _cursor() as cur:
+        cur.execute(
+            """
+            SELECT COUNT(*) AS n
+            FROM assignments a
+            JOIN clips c ON c.id = a.clip_id
+            WHERE a.annotator_id = %s
+              AND c.stage = '1_defiguration'
+              AND a.status != 'done'
+            """,
+            (annotator_id,),
+        )
+        return cur.fetchone()["n"]
+
+
+def count_degradation_blocked_on_base(annotator_id: int) -> int:
+    """Number of THIS annotator's not-yet-done degradation (L1-L3)
+    assignments whose clip has no submitted primary L0 base caption yet —
+    i.e. clips they can't start until a DIFFERENT annotator submits that
+    clip's L0. This is the precise 'waiting on others' count: it depends
+    only on the specific clips in this annotator's queue, not on unrelated
+    L0 work elsewhere in the study."""
+    with _cursor() as cur:
+        cur.execute(
+            """
+            SELECT COUNT(*) AS n
+            FROM assignments a
+            JOIN clips c ON c.id = a.clip_id
+            WHERE a.annotator_id = %s
+              AND c.stage = '2_degradation'
+              AND a.status != 'done'
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM annotations base_an
+                  JOIN assignments base_a ON base_a.id = base_an.assignment_id
+                  JOIN clips base_c ON base_c.id = base_an.clip_id
+                  WHERE base_c.clip_name = c.clip_name
+                    AND base_c.stage = '1_defiguration'
+                    AND base_a.is_primary_base = TRUE
+              )
+            """,
+            (annotator_id,),
+        )
+        return cur.fetchone()["n"]
+
+
 # ----------------------------------------------------------------------
 # Progress (for you, not the annotators)
 # ----------------------------------------------------------------------
