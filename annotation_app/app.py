@@ -202,50 +202,52 @@ def section_select_screen(annotator):
 
 
 def render_defiguration_example():
-    st.info(
-        "**Example — de-figuration.** Below is a worked example: the original "
-        "caption (full of figurative/interpretive language and some errors) and "
-        "a good de-figured L0 result that keeps only grounded, verifiable claims. "
-        "Study it, then scroll down to your own clips."
-    )
-    url = examples.EXAMPLE_VIDEO_URLS.get("L0", "")
-    if url:
-        col_l, col_c, col_r = st.columns([1, 2, 1])
-        with col_c:
-            st.video(url)
-    ex_l, ex_r = st.columns(2)
-    with ex_l:
-        st.text_area("Original caption (before)", examples.DEFIGURATION_EXAMPLE_GT,
-                      height=300, disabled=True, key="ex_defig_gt")
-    with ex_r:
-        st.text_area("Good L0 result (after)", examples.DEFIGURATION_EXAMPLE_L0,
-                      height=300, disabled=True, key="ex_defig_l0")
+    with st.expander("📖 Worked example — de-figuration", expanded=False):
+        st.info(
+            "**Example — de-figuration.** Below is a worked example: the original "
+            "caption (full of figurative/interpretive language and some errors) and "
+            "a good de-figured L0 result that keeps only grounded, verifiable claims. "
+            "Study it, then scroll down to your own clips."
+        )
+        url = examples.EXAMPLE_VIDEO_URLS.get("L0", "")
+        if url:
+            col_l, col_c, col_r = st.columns([1, 2, 1])
+            with col_c:
+                st.video(url)
+        ex_l, ex_r = st.columns(2)
+        with ex_l:
+            st.text_area("Original caption (before)", examples.DEFIGURATION_EXAMPLE_GT,
+                          height=300, disabled=True, key="ex_defig_gt")
+        with ex_r:
+            st.text_area("Good L0 result (after)", examples.DEFIGURATION_EXAMPLE_L0,
+                          height=300, disabled=True, key="ex_defig_l0")
     st.divider()
 
 
 def render_degradation_example():
-    st.info(
-        "**Example — degradation.** Below is a worked example showing how the "
-        "same L0 base caption is weakened as quality drops: claims lose "
-        "specificity (\"fox\" → \"possibly a fox or a cat\"), gain hedges "
-        "(\"possibly\", \"seemingly\"), or are removed when unreadable "
-        "(\"SHINee Includes...\" → \"unreadable text\"). Study it, then scroll "
-        "down to your own clips."
-    )
-    cols = st.columns(4)
-    example_levels = [
-        ("L0 base", examples.EXAMPLE_VIDEO_URLS.get("L0", ""), examples.DEFIGURATION_EXAMPLE_L0),
-        ("L1 (blurry)", examples.EXAMPLE_VIDEO_URLS.get("L1", ""), examples.DEGRADATION_EXAMPLE_L1),
-        ("L2 (very blurry)", examples.EXAMPLE_VIDEO_URLS.get("L2", ""), examples.DEGRADATION_EXAMPLE_L2),
-        ("L3 (extremely blurry)", examples.EXAMPLE_VIDEO_URLS.get("L3", ""), examples.DEGRADATION_EXAMPLE_L3),
-    ]
-    for col, (label, url, caption) in zip(cols, example_levels):
-        with col:
-            st.markdown(f"**{label}**")
-            if url:
-                st.video(url)
-            st.text_area(f"{label} caption", caption, height=340,
-                          disabled=True, key=f"ex_degrade_{label}")
+    with st.expander("📖 Worked example — degradation", expanded=False):
+        st.info(
+            "**Example — degradation.** Below is a worked example showing how the "
+            "same L0 base caption is weakened as quality drops: claims lose "
+            "specificity (\"fox\" → \"possibly a fox or a cat\"), gain hedges "
+            "(\"possibly\", \"seemingly\"), or are removed when unreadable "
+            "(\"SHINee Includes...\" → \"unreadable text\"). Study it, then scroll "
+            "down to your own clips."
+        )
+        cols = st.columns(4)
+        example_levels = [
+            ("L0 base", examples.EXAMPLE_VIDEO_URLS.get("L0", ""), examples.DEFIGURATION_EXAMPLE_L0),
+            ("L1 (blurry)", examples.EXAMPLE_VIDEO_URLS.get("L1", ""), examples.DEGRADATION_EXAMPLE_L1),
+            ("L2 (very blurry)", examples.EXAMPLE_VIDEO_URLS.get("L2", ""), examples.DEGRADATION_EXAMPLE_L2),
+            ("L3 (extremely blurry)", examples.EXAMPLE_VIDEO_URLS.get("L3", ""), examples.DEGRADATION_EXAMPLE_L3),
+        ]
+        for col, (label, url, caption) in zip(cols, example_levels):
+            with col:
+                st.markdown(f"**{label}**")
+                if url:
+                    st.video(url)
+                st.text_area(f"{label} caption", caption, height=340,
+                              disabled=True, key=f"ex_degrade_{label}")
     st.divider()
 
 
