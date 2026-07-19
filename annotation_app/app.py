@@ -389,29 +389,31 @@ def annotation_screen():
     if text_key not in st.session_state:
         st.session_state[text_key] = default_text
 
-    if not is_base:
-        st.write("Insert hedge phrase:")
-        hcols = st.columns(len(HEDGE_PHRASES))
-        for hc, phrase in zip(hcols, HEDGE_PHRASES):
-            if hc.button(phrase, key=f"hedge_{item['assignment_id']}_{phrase}"):
-                st.session_state[text_key] = apply_hedge_to_text(
-                    st.session_state[text_key], phrase
-                )
+    # if not is_base:
+    #     st.write("Insert hedge phrase:")
+    #     hcols = st.columns(len(HEDGE_PHRASES))
+    #     for hc, phrase in zip(hcols, HEDGE_PHRASES):
+    #         if hc.button(phrase, key=f"hedge_{item['assignment_id']}_{phrase}"):
+    #             st.session_state[text_key] = apply_hedge_to_text(
+    #                 st.session_state[text_key], phrase
+    #             )
 
     # Reference (left) and editable caption (right) side-by-side at full
     # page width, both tall enough to read a full ARGUS-length caption
     # without scrolling.
     CAPTION_HEIGHT = 360
     col_ref, col_yours = st.columns(2)
-    with col_ref:
-        st.text_area(reference_label, base_caption,
-                      height=CAPTION_HEIGHT, disabled=True)
     with col_yours:
         caption = st.text_area("Your caption", key=text_key,
                                 height=CAPTION_HEIGHT)
-
-    if not is_base:
-        render_diff(base_caption, caption)
+    with col_ref:
+        if is_base:
+            st.text_area(reference_label, base_caption,
+                          height=CAPTION_HEIGHT, disabled=True)
+        else:
+            st.caption(reference_label)
+            with st.container(height=CAPTION_HEIGHT, border=True):
+                render_diff(base_caption, caption)
 
     b1, b2, b3 = st.columns(3)
     with b1:
