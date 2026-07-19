@@ -72,10 +72,13 @@ STAGE2_HINT = (
     "phrases below.\n"
     "3. **Remove** — when nothing about the entity is verifiable any more.\n\n"
     f"Standardized hedge phrases (use these only): {', '.join(f'`{p}`' for p in HEDGE_PHRASES)}\n\n"
-    "Hint: You can copy-paste text from the L0 caption and use it as a base; "
-    "you need to select the text (still possible even with disabled cursor), "
-    "and perform right click + click 'Copy' instead of Ctrl+C due to the latter "
-    "being the Clear Cache command in Streamlit."
+    "Hint:\n"
+    "1. The left text area is a *diff* (difference) of the L0 caption and your caption. "
+    "After editing you need to click outside the right text area or hit Ctrl+Enter "
+    "for the diff to update.\n"
+    "2. You can copy-paste text from the L0 caption and use it as a base; "
+    "you need to select the text and perform right click + click 'Copy' instead of Ctrl+C"
+    "due to the latter being the Clear Cache command in Streamlit."
 )
 
 NO_BASE_HINT = (
@@ -361,7 +364,7 @@ def annotation_screen():
     else:
         st.markdown(STAGE2_HINT)
         base_caption = db.get_base_caption(item["clip_name"]) or ""
-        reference_label = "L0 base caption (read-only)"
+        reference_label = "Diff of L0 base caption and your caption"
 
     # For degraded levels with no base yet, bail out before the editor.
     if not is_base and not base_caption:
